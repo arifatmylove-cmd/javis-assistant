@@ -1,0 +1,24 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      groq_api_key:
+        description: 'Groq API Key (optional)'
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - run: npm install
+      - run: npm install -g eas-cli
+      - run: eas login --username ${{ secrets.EXPO_USERNAME }} --password ${{ secrets.EXPO_PASSWORD }} --non-interactive
+      - run: eas build --platform android --profile preview --non-interactive --wait
