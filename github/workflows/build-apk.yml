@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       groq_api_key:
-        description: 'Groq API Key (optional)'
+        description: 'Groq API Key for voice-to-text (optional)'
         required: false
         type: string
 
@@ -13,12 +13,43 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-      - run: npm install
-      - run: npm install -g eas-cli
-      - run: eas login --username ${{ secrets.EXPO_USERNAME }} --password ${{ secrets.EXPO_PASSWORD }} --non-interactive
-      - run: eas build --platform android --profile preview --non-interactive --wait
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Setup EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Authenticate with Expo
+        run: eas login --username ${{ secrets.EXPO_USERNAME }} --password ${{ secrets.EXPO_PASSWORD }} --non-interactive
+
+      - name: Set Groq API Key (if provided)
+        if: github.event.inputs.groq_api_key != ''
+        run: |
+          eas secret:create --scope project --name EXPO_PUBLIC_GROQ_KEY --value "${{ github.event.inputs.groq_api_key }}" 2>/dev/null || true
+
+      - name: Build APK
+        run: eas build --platform android --profile preview --non-interactive --wait --output ./app.apk
+
+      - name: Upload APK to GitHub Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: javis-apk
+          path: ./app.apk
+          retention-days: 30
+
+      - name: Upload Build Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: ~/.eas/
+          retention-days: 7
