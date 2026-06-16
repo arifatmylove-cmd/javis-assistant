@@ -1,8 +1,9 @@
 name: Build JAVIS APK
 
-  on:
+  "on":
     push:
-      branches: [main]
+      branches:
+        - main
     workflow_dispatch:
 
   jobs:
